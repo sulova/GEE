@@ -71,6 +71,17 @@ var S2_CP = ee.ImageCollection('COPERNICUS/S2_CLOUD_PROBABILITY')
                 .filterBounds(geometry);
 print("S2_CLOUD_PROBABILITY",S2_CP)
 
+/*
+// Filter input collections by desired data range and region.
+var criteria = ee.Filter.and(ee.Filter.bounds(geometry), ee.Filter.date(date_start, date_end));
+var s2Sr = S2_SR.filter(criteria).map(maskEdges);
+var S2_CP = S2_CP.filter(criteria);
+
+var dates = ee.List(s2Sr.aggregate_array("system:index")).map(function(d){return d});
+var size = s2Sr.size()
+var visParams = {bands:["B4","B3","B2"],min:0,max:3000, gamma:1.5}; 
+*/
+
 //------ S2  SR ----------------------
 
 // Display each image in collection  
@@ -84,18 +95,24 @@ for(var i = 0; i < size_SR.getInfo(); i++){
   Map.addLayer(image, visParams, i.toString()+"_S2_SR")
   }
   
+
 //------ S2  CP   V I S U A L I Z A T I O N----------------------
+var s2SrWithCloudMask = ee.Join.saveFirst('cloud_mask').apply({
+  primary: S2_CP,
+  secondary: S2_SR,
+  condition:ee.Filter.equals({leftField: 'system:index', rightField: 'system:index'})});
+
 
 // Display each image in collection  
-var list_S2_CP = S2_CP.toList(S2_CP.size());
-var size_CP = S2_CP.size()
+var list_S2_CP = s2SrWithCloudMask.toList(s2SrWithCloudMask.size());
+var size_CP = s2SrWithCloudMask.size()
 var vis_S2_CP = {min:0,max:100, gamma:1.5}; 
 
 for(var i = 0; i < size_CP.getInfo(); i++){
   var image = ee.Image(list_S2_CP.get(i));
   var image = image.clip(geometry);
   Map.addLayer(image, vis_S2_CP, i.toString()+"_S2_CP")}
- 
+  
 
 //------ S2  Mask   V I S U A L I Z A T I O N----------------------
 
@@ -117,4 +134,5 @@ for(var i = 0; i < size.getInfo(); i++){
   var image = ee.Image(listOfImages.get(i));
   var image = image.clip(geometry);
   Map.addLayer(image, visParams, i.toString()+"_mask")}
+
 
