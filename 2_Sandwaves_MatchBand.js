@@ -1,62 +1,29 @@
-var s2_20150809T103438 = ee.Image('COPERNICUS/S2/20150809T103438_20160715T140410_T32UME').select(['B4', 'B3', 'B2']);
-var s2_20160826T104022 = ee.Image('COPERNICUS/S2/20160826T104022_20160826T104023_T32UME').select(['B4', 'B3', 'B2']);
-var s2_20160925T104022 = ee.Image('COPERNICUS/S2/20160925T104022_20160925T104115_T32UME').select(['B4', 'B3', 'B2']);
-var s2_20180520T103019 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20180520T103019_20180520T103458_T32UME').select(['B4', 'B3', 'B2']);;
-var s2_20180806T104021 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20180806T104021_20180806T104340_T32UME').select(['B4', 'B3', 'B2']);;
-var s2_20200529T102559 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20200529T102559_20200529T103145_T32UME').select(['B4', 'B3', 'B2']);;
-var s2_20200601T103629 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20200601T103629_20200601T104439_T32UME').select(['B4', 'B3', 'B2']);;
-var s2_20201108T104249 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20201108T104249_20201108T104243_T32UME').select(['B4', 'B3', 'B2']);;
-var s2_20210305T102809 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20210305T102809_20210305T103123_T32UME').select(['B4', 'B3', 'B2']);;
-var s2_20220325T102651 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20220325T102651_20220325T103203_T32UME').select(['B4', 'B3', 'B2']);;
+var geometry = ee.Geometry.Polygon([[[7.97233427942289, 53.97207856298764],[7.97233427942289, 53.600488504021016],
+                                [8.74687041223539, 53.600488504021016],[8.74687041223539, 53.97207856298764]]], null, false);
 
-var s2_20150809T103438 = s2_20150809T103438 .clip(geometry);
-var s2_20160826T104022 = s2_20160826T104022 .clip(geometry);
-var s2_20160925T104022 = s2_20160925T104022 .clip(geometry);
-var s2_20180520T103019 = s2_20180520T103019 .clip(geometry);
-var s2_20180806T104021 = s2_20180806T104021 .clip(geometry);
-var s2_20200529T102559 = s2_20200529T102559 .clip(geometry);
-var s2_20200601T103629 = s2_20200601T103629 .clip(geometry);
-var s2_20201108T104249 = s2_20201108T104249 .clip(geometry);
-var s2_20210305T102809 = s2_20210305T102809 .clip(geometry);
-var s2_20220325T102651 = s2_20220325T102651 .clip(geometry);
+var s2_1 = ee.Image('COPERNICUS/S2/20150809T103438_20160715T140410_T32UME');
+var s2_2 = ee.Image('COPERNICUS/S2/20160826T104022_20160826T104023_T32UME');
+var s2_3 = ee.Image('COPERNICUS/S2/20160925T104022_20160925T104115_T32UME');
+var s2_4 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20180520T103019_20180520T103458_T32UME');
+var s2_5 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20180806T104021_20180806T104340_T32UME');
+var s2_6 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20200529T102559_20200529T103145_T32UME');
+var s2_7 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20200601T103629_20200601T104439_T32UME');
+var s2_8 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20201108T104249_20201108T104243_T32UME');
+var s2_9 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20210305T102809_20210305T103123_T32UME');
+var s2_10 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20220325T102651_20220325T103203_T32UME');
 
+// Target Image
+var image_target = s2_5.select(['B4', 'B3', 'B2'])
+
+
+var thumbParams = {dimensions: 1000}
+var collection = ee.ImageCollection([s2_1, s2_2, s2_3, s2_4, s2_5, s2_6, s2_7, s2_8, s2_9, s2_10])            
+var collection_list = collection.toList(collection.size());
+var collection_size = collection.size()
 var rgbVis = {min:0, max:3000, bands: ['B4', 'B3', 'B2']};
+Map.centerObject(s2_1, 10);
 
-Map.addLayer(s2_20150809T103438, rgbVis, "s2_20150809T103438",0)
-Map.addLayer(s2_20160826T104022, rgbVis, "s2_20160826T104022",0)
-Map.addLayer(s2_20160925T104022, rgbVis, "s2_20160925T104022",0)
-Map.addLayer(s2_20180520T103019, rgbVis, "s2_20180520T103019",0)
-Map.addLayer(s2_20180806T104021, rgbVis, "s2_20180806T104021",0)
-Map.addLayer(s2_20200529T102559, rgbVis, "s2_20200529T102559",0)
-Map.addLayer(s2_20200601T103629, rgbVis, "s2_20200601T103629",0)
-Map.addLayer(s2_20201108T104249, rgbVis, "s2_20201108T104249",0)
-Map.addLayer(s2_20210305T102809, rgbVis, "s2_20220318T103751",0)
-Map.addLayer(s2_20220325T102651, rgbVis, "s2_20220318T103751",0)
-
-
-Export.image.toDrive({  image: s2_20150809T103438.select("B4", "B3", "B2"),
-  description: 's2_20150809T103438',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: s2_20160826T104022.select("B4", "B3", "B2"),
-  description: 's2_20160826T104022',  scale: 10,  region: geometry}); 
-Export.image.toDrive({  image: s2_20160925T104022.select("B4", "B3", "B2"),
-  description: 's2_20160925T104022',  scale: 10,  region: geometry}); 
-Export.image.toDrive({  image: s2_20220325T102651.select("B4", "B3", "B2"),
-  description: 's2_20220325T102651_H',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: s2_20210305T102809.select("B4", "B3", "B2"),
-  description: 's2_20210305T102809_H',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: s2_20201108T104249.select("B4", "B3", "B2"),
-  description: 's2_20201108T104249_H',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: s2_20200601T103629.select("B4", "B3", "B2"),
-  description: 's2_20200601T103629_H',  scale: 10, region: geometry});    
-Export.image.toDrive({  image: s2_20200529T102559.select("B4", "B3", "B2"),
-  description: 's2_20200529T102559_H',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: s2_20180806T104021.select("B4", "B3", "B2"),
-  description: 's2_20180806T104021_H',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: s2_20180520T103019.select("B4", "B3", "B2"),
-  description: 's2_20180520T103019_H',  scale: 10,  region: geometry});    
-
-Map.centerObject(s2_20180520T103019, 10);
-
+//___________________Function______________________________
 
 // Create a lookup table to make sourceHist match targetHist.
 var lookup = function(sourceHist, targetHist) {
@@ -72,8 +39,7 @@ var lookup = function(sourceHist, targetHist) {
   // Find first position in target where targetCount >= srcCount[i], for each i.
   var lookup = sourceCounts.toList().map(function(n) {
     var index = targetCounts.gte(n).argmax()
-    return targetValues.get(index)
-  })
+    return targetValues.get(index)})
   return {x: sourceValues.toList(), y: lookup}
 }
 
@@ -94,76 +60,35 @@ var histogramMatch = function(sourceImg, targetImg) {
   return ee.Image.cat(
     sourceImg.select(['B4']).interpolate(lookup(source.getArray('B4'), target.getArray('B4'))),
     sourceImg.select(['B3']).interpolate(lookup(source.getArray('B3'), target.getArray('B3'))),
-    sourceImg.select(['B2']).interpolate(lookup(source.getArray('B2'), target.getArray('B2')))
-  )
+    sourceImg.select(['B2']).interpolate(lookup(source.getArray('B2'), target.getArray('B2'))))
 }
 
-var match_s2_20150809T103438 = histogramMatch(s2_20150809T103438, s2_20180806T104021)
-var match_s2_20160826T104022 = histogramMatch(s2_20160826T104022, s2_20180806T104021)
-var match_s2_20160925T104022 = histogramMatch(s2_20160925T104022, s2_20180806T104021)
-var match_s2_20180520T103019 = histogramMatch(s2_20180520T103019, s2_20180806T104021)
-var match_s2_20180806T104021 = histogramMatch(s2_20180806T104021, s2_20180806T104021)
-var match_s2_20200529T102559 = histogramMatch(s2_20200529T102559, s2_20180806T104021)
-var match_s2_20200601T103629 = histogramMatch(s2_20200601T103629, s2_20180806T104021)
-var match_s2_20201108T104249 = histogramMatch(s2_20201108T104249, s2_20180806T104021)
-var match_s2_20210305T102809 = histogramMatch(s2_20210305T102809, s2_20180806T104021)
-var match_s2_20220325T102651 = histogramMatch(s2_20220325T102651, s2_20180806T104021)
+// Loop for visualization, match bands and downloading images
+
+for(var i = 0; i < collection_size.getInfo(); i++){
+  var image = ee.Image(collection_list.get(i)).select(['B4', 'B3', 'B2']);
+  var date = image.date().format('yyyy-MM-dd').getInfo()
+  var image_match = histogramMatch(image,image_target)
+  
+  Map.addLayer(image, rgbVis, i.toString() +"_S2_"+ date.toString(), true)
+  Map.addLayer(image_match, rgbVis, i.toString() +"_S2_match_"+ date.toString(), true)
+  
+  Export.image.toDrive({  
+    image: image.select("B4", "B3", "B2"),
+    description: i.toString() +"_S2_"+ date.toString(),
+    scale: 10,  
+    region: geometry})
+    
+  var image_vis = image_match.visualize(rgbVis).clip(geometry)
+  
+  Export.image.toDrive({  
+    image: image_vis,
+    description: i.toString() +"_S2_match_"+ date.toString(),
+    scale: 10,  
+    region: geometry})
+  
+  //print(image_vis.getThumbURL(thumbParams))  
+  }
+  
 
 
-
-Map.addLayer(match_s2_20150809T103438, rgbVis, 'match_s2_20150809T103438')
-Map.addLayer(match_s2_20160826T104022, rgbVis, 'match_s2_20160826T104022')
-Map.addLayer(match_s2_20160925T104022, rgbVis, 'match_s2_20150809T103438')
-Map.addLayer(match_s2_20180520T103019, rgbVis, 'match_s2_20180520T103019')
-Map.addLayer(match_s2_20180806T104021, rgbVis, 'match_s2_20180806T104021')
-Map.addLayer(match_s2_20200529T102559, rgbVis, 'match_s2_20200529T102559')
-Map.addLayer(match_s2_20200601T103629, rgbVis, 'match_s2_20200601T103629')
-Map.addLayer(match_s2_20201108T104249, rgbVis, 'match_s2_20201108T104249')
-Map.addLayer(match_s2_20210305T102809, rgbVis, 'match_s2_20210305T102809')
-Map.addLayer(match_s2_20220325T102651, rgbVis, 'match_s2_20220325T102651')
-
-var thumbParams = {dimensions: 1000}
-
-var match_s2_20150809T103438 = match_s2_20150809T103438.visualize(rgbVis)
-print(match_s2_20150809T103438)
-print(match_s2_20150809T103438.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20160826T104022 = match_s2_20160826T104022.visualize(rgbVis)
-print(match_s2_20160826T104022.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20160925T104022 = match_s2_20160925T104022.visualize(rgbVis)
-print(match_s2_20160925T104022.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20180520T103019 = match_s2_20180520T103019.visualize(rgbVis)
-print(match_s2_20180520T103019.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20180806T104021 = match_s2_20180806T104021.visualize(rgbVis)
-print(match_s2_20180806T104021.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20200529T102559 = match_s2_20200529T102559.visualize(rgbVis)
-print(match_s2_20200529T102559.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20200601T103629 = match_s2_20200601T103629.visualize(rgbVis)
-print(match_s2_20200601T103629.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20201108T104249 = match_s2_20201108T104249.visualize(rgbVis)
-print(match_s2_20201108T104249.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20210305T102809 = match_s2_20210305T102809.visualize(rgbVis)
-print(match_s2_20210305T102809.clip(geometry).getThumbURL(thumbParams))
-var match_s2_20220325T102651 = match_s2_20220325T102651.visualize(rgbVis)
-print(match_s2_20220325T102651.clip(geometry).getThumbURL(thumbParams))
-
-
-Export.image.toDrive({  image: match_s2_20150809T103438,
-  description: 'match_s2_20150809T103438',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: match_s2_20160826T104022,
-  description: 'match_s2_20160826T104022',  scale: 10,  region: geometry}); 
-Export.image.toDrive({  image: match_s2_20160925T104022,
-  description: 'match_s2_20160925T104022',  scale: 10,  region: geometry}); 
-Export.image.toDrive({  image: match_s2_20180520T103019,
-  description: 'match_s2_20180520T103019',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: match_s2_20180806T104021,
-  description: 'match_s2_20180806T104021',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: match_s2_20200529T102559,
-  description: 'match_s2_20200529T102559',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: match_s2_20200601T103629,
-  description: 'match_s2_20200601T103629',  scale: 10, region: geometry});    
-Export.image.toDrive({  image: match_s2_20201108T104249,
-  description: 'match_s2_20201108T104249',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: match_s2_20210305T102809,
-  description: 'match_s2_20210305T102809',  scale: 10,  region: geometry});    
-Export.image.toDrive({  image: match_s2_20220325T102651,
-  description: 'match_s2_20220325T102651',  scale: 10,  region: geometry});    
