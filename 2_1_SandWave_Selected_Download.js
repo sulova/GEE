@@ -9,7 +9,10 @@ var s2_8 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20201108T104249_20201108T104243
 var s2_9 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20210305T102809_20210305T103123_T32UME');
 var s2_10 = ee.Image('COPERNICUS/S2_SR_HARMONIZED/20220325T102651_20220325T103203_T32UME');
 
-
+var geometry = ee.Geometry.Polygon([[[7.97233427942289, 53.97207856298764],
+          [7.97233427942289, 53.600488504021016],[8.74687041223539, 53.600488504021016],
+          [8.74687041223539, 53.97207856298764]]], null, false);
+          
 Map.centerObject(s2_1, 10);
 
 var collection = ee.ImageCollection([s2_1, s2_2, s2_3, s2_4, s2_5, s2_6, s2_7, s2_8, s2_9, s2_10])            
@@ -20,7 +23,6 @@ print(collection_list)
 
 var collection_size = collection.size()
 var rgbVis = {min:0, max:3000, bands: ['B4', 'B3', 'B2']};
-
 
 for(var i = 0; i < collection_size.getInfo(); i++){
   var image = ee.Image(collection_list.get(i));
