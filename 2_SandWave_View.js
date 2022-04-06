@@ -35,9 +35,10 @@ var visParams = {bands:["B4","B3","B2"],min:0,max:3000, gamma:1.5};
 for(var i = 0; i < size_SR.getInfo(); i++){
   var image = ee.Image(list_S2_SR.get(i));
   var image = image.clip(geometry);
-  Map.addLayer(image, visParams, i.toString()+"_S2_SR", true)
+  var date = image.date().format('yyyy-MM-dd').getInfo();
+  print(date)
+  Map.addLayer(image, visParams, i.toString()+"_S2_SR_" + date, true)
   }
-
 
 // Slider helping go through scenes
 var slider = ui.Slider();
