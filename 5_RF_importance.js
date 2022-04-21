@@ -20,19 +20,38 @@ var classes_T = samples.aggregate_array('Seasons_T').distinct()
 print("classes", classes, classes_T, samples.aggregate_histogram('Seasons_T')) 
 
 
-var histogram = ui.Chart.image.histogram({  image: DM05,  region: aoi, scale: 30,maxPixels: 1e9, minBucketWidth: 1}); histogram.setOptions({title: 'Histogram of diff ele(meters)'});
-print(histogram);
+var histogram_DM05 = ui.Chart.image.histogram({  image: DM05,  region: aoi, scale: 30,
+          maxPixels: 1e9, minBucketWidth: 1}); histogram_DM05.setOptions({title: 'Histogram of diff ele(meters)'});
+var histogram_Glo30 = ui.Chart.image.histogram({  image: Glo30,  region: aoi, scale: 30,
+          maxPixels: 1e9, minBucketWidth: 1}); histogram_Glo30.setOptions({title: 'Histogram of diff ele(meters)'});
+//print(histogram_DM05,histogram_Glo30);
 
 
-var band_Names = samples.first().propertyNames().removeAll(["year","Training","Superficie","Seasons_T","system:index","beam","TreeType_T","month","B1_p10","B1_p20","B1_p50","B1_p90","B1_p95","B9_p10","B9_p20","B9_p50","B9_p90","B9_p95",])
+var band_Names = samples.first().propertyNames().removeAll(["year","Training","Superficie","Seasons_T","system:index","beam","TreeType_T","month","B1_p10","B1_p20","B1_p50","B1_p90","B1_p95","B9_p10","B9_p20","B9_p50","B9_p90","B9_p95"])
 var samples = samples.select(band_Names)  
 
-var layer = DM05.addBands(Glo30)
-var training = layer.sampleRegions({collection: samples, scale: 30});
-var training = training.limit(5000)
-print(training)
+
+var samples = ee.FeatureCollection(samples.aggregate_array('label').distinct()
+        .map(function(l){
+          return samples.filter(ee.Filter.eq('label', l))
+                        // .randomColumn()
+                        // .limit(1000, 'random')
+                        })
+          ).flatten()
+        .filter(ee.Filter.notNull(['ndvi_p10']))        
 
   
+var layer = DM05.addBands(Glo30)
+
+// var samples = samples.limit(100)
+// var training = layer.sampleRegions({collection: samples, scale: 30, tileScale:4});
+var training = layer.reduceRegions({collection:samples, reducer:ee.Reducer.mean(), scale:25, tileScale:8})
+
+Export.table.toAsset({collection:training, description:"DM_training", assetId:"rio-segura"})
+//print(training.first())
+
+var band_Names = training.first().propertyNames()  
+print(band_Names)
 // Train a RF classifier.
 var rf = ee.Classifier.smileRandomForest({numberOfTrees:100, minLeafPopulation:10})
 var rf = rf.train({features:training, classProperty: "label", inputProperties: band_Names})
@@ -50,3 +69,4 @@ print(imp)
 
 
 
+;
