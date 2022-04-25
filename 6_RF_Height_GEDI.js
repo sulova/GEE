@@ -87,8 +87,7 @@ var height_raster = height_raster.sampleRegions(
             scale: 20, 
             tileScale:16})    
             
-print("FR_current:")
-print(calculateRMSE(height_raster))
+print("FR_current:"), calculateRMSE(height_raster)
 
 
 //______EXPORT_DATA_______________
@@ -122,8 +121,7 @@ var image_predicted = raster_predicted.sampleRegions(
             scale: 20, 
             tileScale:16})
 
-print("RF_predicted")
-print(calculateRMSE(image_predicted))
+print("RF_predicted"), calculateRMSE(image_predicted)
 
 //_______RMSE_images_____________________
 
@@ -144,10 +142,8 @@ var image_300 = image_300.sampleRegions(
             tileScale:16})          
 
             
-print("RF_image_100")
-print(calculateRMSE(image_100))
-print("RF_iage_300")
-print(calculateRMSE(image_300))
+print("RF_image_100"), calculateRMSE(image_100)
+print("RF_image_300"), calculateRMSE(image_300)
 
 //____Functions______
 
