@@ -59,7 +59,7 @@ var sample_bands = ["rh98", "dif_GLO30" , "slope_DTM05" , "SAR1520_HV" , "SAR20_
                
 var samples = samples.select(sample_bands)
 
-var rf = ee.Classifier.smileRandomForest({numberOfTrees: 500, minLeafPopulation:10}).setOutputMode('REGRESSION')
+var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
 var rf = rf.train({features:samples, classProperty: "rh98", inputProperties: sample_bands})
 var explain = rf.explain().get('outOfBagErrorEstimate')
 print(explain, getImp(rf))
