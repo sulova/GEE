@@ -50,7 +50,7 @@ var s2Q = ee.List.sequence(1,4,1).map(function(m){
 var s2 = s2.select(b).reduce(ee.Reducer.percentile([10,20,50,90,95]),4)
 
 
-//______Train Model__________________
+//______Train Model with All Samples__________________
 
 var sample_bands = ["rh98", "dif_GLO30" , "slope_DTM05" , "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , 
                "B12_p95" , "SAR20_HH", "B8_p20" , "B11_p95" , "ndmi_p10" , "GLO30" , "B11_p20" ,
@@ -62,7 +62,7 @@ var samples = samples.select(sample_bands)
 var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
 var rf = rf.train({features:samples, classProperty: "rh98", inputProperties: sample_bands})
 var explain = rf.explain().get('outOfBagErrorEstimate')
-print(explain, getImp(rf))
+print("Variable importance with all samples", explain, getImp(rf))
 
 
 //______Apply Model_________________
@@ -81,6 +81,14 @@ Map.addLayer(height_layer, {min: 0, max: 20, palette: ['yellow', 'green']},'heig
 var  height_raster = height_layer.clip(permanent)
 Map.addLayer(height_raster,{min: 0, max: 20, palette: ['yellow', 'green']}, "height_layer_clip")
 
+var height_raster = height_raster.sampleRegions(
+            {collection: samples,
+            properties: ["rh98"],
+            scale: 20, 
+            tileScale:16})    
+            
+print("FR_current:")
+print(calculateRMSE(height_raster))
 
 
 //______EXPORT_DATA_______________
@@ -90,8 +98,34 @@ Export.image.toDrive({image: height_raster,
                   region: aoi,
                   scale:20, 
                   maxPixels:1e13})
+                  
+                  
+//_____Acuraccy - Train/Test Datasets_____________
 
-//_______RMSE_____________________
+
+var split = 0.7;  //  70% training, 30% testing.
+var samples= samples.randomColumn();
+var training = samples.filter(ee.Filter.lt('random', split));
+var test = samples.filter(ee.Filter.gte('random', split));
+print('Number of training/test dataset: ', training.size(), test.size())
+
+var rf_trained = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
+var rf_trained = rf_trained.train({features:training, classProperty: "rh98", inputProperties: sample_bands})
+var explain_trained = rf_trained.explain().get('outOfBagErrorEstimate')
+print("Training RF", explain_trained, getImp(rf_trained))
+
+var raster_predicted = raster.classify(rf_trained)
+
+var image_predicted = raster_predicted.sampleRegions(
+            {collection: samples,
+            properties: ["rh98"],
+            scale: 20, 
+            tileScale:16})
+
+print("RF_predicted")
+print(calculateRMSE(image_predicted))
+
+//_______RMSE_images_____________________
 
 
 var image_100 = ee.Image("projects/geo4gras/assets/rio-segura/Height_20m_perm_F100")
@@ -107,32 +141,24 @@ var image_300 = image_300.sampleRegions(
             {collection: samples,
             properties: ["rh98"],
             scale: 20, 
-            tileScale:16})   
-            
-var height_raster = height_raster.sampleRegions(
-            {collection: samples,
-            properties: ["rh98"],
-            scale: 20, 
-            tileScale:16})             
-            
-var observation = calculateRMSE(image_100)
-var observation = calculateRMSE(image_300)
-var observation = calculateRMSE(height_raster)
+            tileScale:16})          
 
+            
+print("RF_image_100")
+print(calculateRMSE(image_100))
+print("RF_iage_300")
+print(calculateRMSE(image_300))
 
 //____Functions______
 
 function getImp (model){
   var imp = ee.Dictionary(model.explain().get('importance'))
-
   var dict_to_fc = ee.FeatureCollection(imp.keys().map(function(k){
     return ee.Feature(null, {key: k, value: imp.getNumber(k)})
   }))
-
   var top10 = dict_to_fc.limit(10,'value', false)
   var keys = top10.aggregate_array('key')
   var vals = top10.aggregate_array('value').map(function(n){return ee.Number.parse(ee.Number(n).format().slice(0,5))})
-  print(keys)
   return keys.zip(vals)
 }
 
@@ -164,8 +190,6 @@ function getS2(s,e,aoi){
 
 
 function calculateRMSE(vals){
-  ///rmse gives high weight to large errors. Could be problematic.
-  // var vals = clf_img.rename('pred').sampleRegions(training_fc, ['OC'], 10)
   var obs = ee.Array(vals.aggregate_array('rh98'))
   var pred = ee.Array(vals.aggregate_array('H_m'))
   var rmse = obs.subtract(pred).pow(2).reduce('mean', [0]).sqrt().get([0])
