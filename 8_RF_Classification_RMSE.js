@@ -12,7 +12,7 @@ Map.addLayer(geometry,{},"geometry")
 //_____Input Sample Variables__________
 var samples = ee.FeatureCollection("projects/ee-sulovaandrea/assets/Segura/GEDI_var21_10");
 // var samples = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/GEDI_variables_20_Filter");
-Map.addLayer(samples, {min:0,max:2000}, 'GEDI',0);
+
 Map.centerObject(geometry,14); 
 
 //var samples = samples.limit(1000)
@@ -45,7 +45,7 @@ var dif_DM30 = GLO30.subtract(DTM05).rename("dif_GLO30");
 var slope = ee.Terrain.slope(DTM05).rename("Slope_DTM05")
 var aspect = ee.Terrain.aspect(DTM05).rename("Aspect_DTM05")
 
-Map.addLayer(dif_DM30,{mmin:1, max:20})
+// Map.addLayer(dif_DM05,{mmin:1, max:20})
 
 //SmoothRaster
 var boxcar_3 = ee.Kernel.square({radius: 3, units: 'pixels', magnitude: 1});
@@ -111,7 +111,7 @@ var pinkgreen = ['#8e0152','#c51b7d','#de77ae','#f1b6da','#fde0ef','#f7f7f7','#e
 var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
 var df_bands_all = samples.select(bands_all)
 
-var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
+var rf = ee.Classifier.smileRandomForest({numberOfTrees: 200, minLeafPopulation:10}).setOutputMode('REGRESSION')
 var rf = rf.train({features:df_bands_all, classProperty: "rh98", inputProperties: bands_all})
 var explain = rf.explain().get('outOfBagErrorEstimate')
 var final_raster = layer.select(df_bands_all)
@@ -128,7 +128,7 @@ var bands_selection = ["rh98", "Slope_SM3" , "SAR1520_HV" , "SAR20_HV" , "S1VH" 
                "B11_p95" , "ndmi_p10" , "GLO30" , "SAR20_HH" , "B7_p95" , "B8A_p95" , "B11_p90", "B12_p50"]
 var df_bands_all = samples.select(bands_selection)
             
-var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
+var rf = ee.Classifier.smileRandomForest({numberOfTrees: 200, minLeafPopulation:10}).setOutputMode('REGRESSION')
 var rf = rf.train({features:df_bands_all, classProperty: "rh98", inputProperties: bands_selection})
 var explain = rf.explain().get('outOfBagErrorEstimate')
 var final_raster = layer.select(df_bands_all)
@@ -144,7 +144,7 @@ var df_bands_all = samples.select(bands_all)
 var bands_selection = ["rh98", "dif_GLO30" , "Slope_SM3" , "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , "B12_p95" , "SAR20_HH"]
 var df_bands_all = samples.select(bands_selection)
             
-var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
+var rf = ee.Classifier.smileRandomForest({numberOfTrees: 00, minLeafPopulation:10}).setOutputMode('REGRESSION')
 var rf = rf.train({features:df_bands_all, classProperty: "rh98", inputProperties: bands_selection})
 var explain = rf.explain().get('outOfBagErrorEstimate')
 var final_raster = layer.select(df_bands_all)
@@ -168,6 +168,17 @@ var height_layer = layer.classify(rf).rename("H_m")
 var observation_prediction = height_layer.sampleRegions({collection:df_bands_all, properties: ["rh98"], scale:10, tileScale:10})
 print("Selected bands 4", explain, getImp(rf)),calculateRMSE(observation_prediction)
 Map.addLayer(height_layer.clip(parcels_perm), {min: 2, max: 6, palette:pinkgreen.reverse()},'4', 1); 
+
+
+// GEDI and Crop feature Collection
+
+Map.addLayer(samples, {min:0,max:2000}, 'GEDI',0);
+
+var crop_2021 = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/crop_2021")
+var permanent = crop_2021.filter(ee.Filter.eq('Training', "P"))
+print("Permanent",permanent.size())
+Map.addLayer(permanent, {}, "perm_parcels",0)
+
 
 //____Functions______
 
