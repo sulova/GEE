@@ -3,14 +3,19 @@
 Find Important Variables for Classification
 
 */
+var geometry = ee.Geometry.MultiPoint(
+        [[-1.5171839763683659, 37.84347161926997]]);
+
+Map.addLayer(geometry,{},"geometry")
+
 
 //_____Input Sample Variables__________
 var samples = ee.FeatureCollection("projects/ee-sulovaandrea/assets/Segura/GEDI_var21_10");
 // var samples = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/GEDI_variables_20_Filter");
 Map.addLayer(samples, {min:0,max:2000}, 'GEDI',0);
-Map.centerObject(samples,10); 
+Map.centerObject(geometry,14); 
 
-var samples = samples.limit(1000)
+//var samples = samples.limit(1000)
 
 
 var samples = samples.filter(ee.Filter.lt('rh98',18))
@@ -39,6 +44,8 @@ var dif_DM05 = DSM05.subtract(DTM05).rename("dif_DM05");
 var dif_DM30 = GLO30.subtract(DTM05).rename("dif_GLO30");
 var slope = ee.Terrain.slope(DTM05).rename("Slope_DTM05")
 var aspect = ee.Terrain.aspect(DTM05).rename("Aspect_DTM05")
+
+Map.addLayer(dif_DM30,{mmin:1, max:20})
 
 //SmoothRaster
 var boxcar_3 = ee.Kernel.square({radius: 3, units: 'pixels', magnitude: 1});
@@ -98,6 +105,8 @@ var bandnames = layer.bandNames().removeAll(["year","Training","Superficie","Sea
 
 //______Train a RF classifier____
 
+var pinkgreen = ['#8e0152','#c51b7d','#de77ae','#f1b6da','#fde0ef','#f7f7f7','#e6f5d0','#b8e186','#7fbc41','#4d9221','#276419']
+
 ////// ALL BANDS
 var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
 var df_bands_all = samples.select(bands_all)
@@ -109,14 +118,14 @@ var final_raster = layer.select(df_bands_all)
 var height_layer = layer.classify(rf).rename("H_m")
 var observation_prediction = height_layer.sampleRegions({collection:df_bands_all, properties: ["rh98"], scale:10, tileScale:10})
 print("All bands", explain, getImp(rf)),calculateRMSE(observation_prediction)
-Map.addLayer(height_layer, {min: 2, max: 6, palette: ['green', 'red']},'height_layer_all', 0); 
+Map.addLayer(height_layer.clip(parcels_perm), {min: 2, max: 6, palette:pinkgreen.reverse()},'1', 1); 
 
 
-/// Selected bands
+/// Selected bands 1
 var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
 var df_bands_all = samples.select(bands_all)
-var bands_selection = ["rh98", "dif_GLO30" , "Slope_DTM05" , "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , "B12_p95" , "SAR20_HH",
-              "B8_p20" , "B11_p95" , "ndmi_p10" , "GLO30" , "B11_p20" , "B7_p95" , "B8A_p95" , "B11_p90", "B12_p50"]
+var bands_selection = ["rh98", "Slope_SM3" , "SAR1520_HV" , "SAR20_HV" , "S1VH" , "SAR1520_HH" , "B12_p95" ,
+               "B11_p95" , "ndmi_p10" , "GLO30" , "SAR20_HH" , "B7_p95" , "B8A_p95" , "B11_p90", "B12_p50"]
 var df_bands_all = samples.select(bands_selection)
             
 var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
@@ -125,13 +134,14 @@ var explain = rf.explain().get('outOfBagErrorEstimate')
 var final_raster = layer.select(df_bands_all)
 var height_layer = layer.classify(rf).rename("H_m")
 var observation_prediction = height_layer.sampleRegions({collection:df_bands_all, properties: ["rh98"], scale:10, tileScale:10})
-print("Selected bands 2", explain, getImp(rf)),calculateRMSE(observation_prediction)
-Map.addLayer(height_layer, {min: 2, max: 6, palette: ['green', 'red']},'height_layer_all', 0); 
+print("Selected bands 1:", explain, getImp(rf)),calculateRMSE(observation_prediction)
+Map.addLayer(height_layer.clip(parcels_perm), {min: 2, max: 6, palette:pinkgreen.reverse()},'2', 1); 
+
 
 /// Selected bands
 var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
 var df_bands_all = samples.select(bands_all)
-var bands_selection = ["rh98", "dif_GLO30" , "Slope_DTM05" , "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , "B12_p95" , "SAR20_HH"]
+var bands_selection = ["rh98", "dif_GLO30" , "Slope_SM3" , "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , "B12_p95" , "SAR20_HH"]
 var df_bands_all = samples.select(bands_selection)
             
 var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
@@ -141,12 +151,13 @@ var final_raster = layer.select(df_bands_all)
 var height_layer = layer.classify(rf).rename("H_m")
 var observation_prediction = height_layer.sampleRegions({collection:df_bands_all, properties: ["rh98"], scale:10, tileScale:10})
 print("Selected bands 3", explain, getImp(rf)),calculateRMSE(observation_prediction)
-Map.addLayer(height_layer, {min: 2, max: 6, palette: ['green', 'red']},'height_layer_all', 0); 
+Map.addLayer(height_layer.clip(parcels_perm), {min: 2, max: 6, palette:pinkgreen.reverse()},'3', 1); 
+
 
 /// Selected bands
 var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
 var df_bands_all = samples.select(bands_all)
-var bands_selection = ["rh98", "dif_GLO30" , "Slope_DTM05" ,"GLO30", "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , "B12_p95" , "SAR20_HH"]
+var bands_selection = ["rh98", "Slope_SM3" ,"GLO30", "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , "B12_p95" , "SAR20_HH"]
 var df_bands_all = samples.select(bands_selection)
             
 var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
@@ -156,8 +167,7 @@ var final_raster = layer.select(df_bands_all)
 var height_layer = layer.classify(rf).rename("H_m")
 var observation_prediction = height_layer.sampleRegions({collection:df_bands_all, properties: ["rh98"], scale:10, tileScale:10})
 print("Selected bands 4", explain, getImp(rf)),calculateRMSE(observation_prediction)
-Map.addLayer(height_layer, {min: 2, max: 6, palette: ['green', 'red']},'height_layer_all', 0); 
-
+Map.addLayer(height_layer.clip(parcels_perm), {min: 2, max: 6, palette:pinkgreen.reverse()},'4', 1); 
 
 //____Functions______
 
