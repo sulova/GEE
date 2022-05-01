@@ -41,7 +41,7 @@ var GLO30 = ee.ImageCollection("projects/sat-io/open-datasets/GLO-30").filterBou
 var DSM05 = ee.Image("projects/geo4gras/assets/rio-segura/DSM05").rename("DSM05");
 var DTM05 = ee.Image("projects/geo4gras/assets/rio-segura/DTM05").rename("DTM05");
 var dif_DM05 = DSM05.subtract(DTM05).rename("dif_DM05");
-var dif_DM30 = GLO30.subtract(DTM05).rename("dif_GLO30");
+//var dif_DM30 = GLO30.subtract(DTM05).rename("dif_GLO30");
 var slope = ee.Terrain.slope(DTM05).rename("Slope_DTM05")
 var aspect = ee.Terrain.aspect(DTM05).rename("Aspect_DTM05")
 
@@ -96,7 +96,7 @@ var label = perm_rst.rename("Label");
 
 //______Merge rasters______________
 var layer = s2.addBands(SAR20_HH).addBands(SAR20_HV).addBands(SAR1520_HH).addBands(SAR1520_HV).addBands(GLO30).addBands(DSM05)
-            .addBands(DTM05).addBands(dif_DM05).addBands(dif_DM30).addBands(slope).addBands(aspect)
+            .addBands(DTM05).addBands(dif_DM05).addBands(slope).addBands(aspect)
             .addBands(label).addBands(S1_VH).addBands(S1_VV).addBands(hand30).addBands(DTM05_SM3)
             .addBands(Slope_SM3).addBands(DTM05_SM5).addBands(Slope_SM5).addBands(DTM05_SM10).addBands(Slope_SM10)
                       
@@ -107,8 +107,8 @@ var bandnames = layer.bandNames().removeAll(["year","Training","Superficie","Sea
 
 var pinkgreen = ['#8e0152','#c51b7d','#de77ae','#f1b6da','#fde0ef','#f7f7f7','#e6f5d0','#b8e186','#7fbc41','#4d9221','#276419']
 
-////// ALL BANDS
-var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
+////// ALL BANDS - Selected bands 1
+var bands_all = samples.first().propertyNames().removeAll(["system:index","label", "dif_GLO30"])
 var df_bands_all = samples.select(bands_all)
 
 var rf = ee.Classifier.smileRandomForest({numberOfTrees: 200, minLeafPopulation:10}).setOutputMode('REGRESSION')
@@ -121,8 +121,7 @@ print("All bands", explain, getImp(rf)),calculateRMSE(observation_prediction)
 Map.addLayer(height_layer.clip(parcels_perm), {min: 2, max: 6, palette:pinkgreen.reverse()},'1', 1); 
 
 
-/// Selected bands 1
-var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
+/// Selected bands 2
 var df_bands_all = samples.select(bands_all)
 var bands_selection = ["rh98", "Slope_SM3" , "SAR1520_HV" , "SAR20_HV" , "S1VH" , "SAR1520_HH" , "B12_p95" ,
                "B11_p95" , "ndmi_p10" , "GLO30" , "SAR20_HH" , "B7_p95" , "B8A_p95" , "B11_p90", "B12_p50"]
@@ -138,13 +137,12 @@ print("Selected bands 1:", explain, getImp(rf)),calculateRMSE(observation_predic
 Map.addLayer(height_layer.clip(parcels_perm), {min: 2, max: 6, palette:pinkgreen.reverse()},'2', 1); 
 
 
-/// Selected bands
-var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
+/// Selected bands 3
 var df_bands_all = samples.select(bands_all)
 var bands_selection = ["rh98", "dif_GLO30" , "Slope_SM3" , "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , "B12_p95" , "SAR20_HH"]
 var df_bands_all = samples.select(bands_selection)
             
-var rf = ee.Classifier.smileRandomForest({numberOfTrees: 00, minLeafPopulation:10}).setOutputMode('REGRESSION')
+var rf = ee.Classifier.smileRandomForest({numberOfTrees: 200, minLeafPopulation:10}).setOutputMode('REGRESSION')
 var rf = rf.train({features:df_bands_all, classProperty: "rh98", inputProperties: bands_selection})
 var explain = rf.explain().get('outOfBagErrorEstimate')
 var final_raster = layer.select(df_bands_all)
@@ -154,13 +152,12 @@ print("Selected bands 3", explain, getImp(rf)),calculateRMSE(observation_predict
 Map.addLayer(height_layer.clip(parcels_perm), {min: 2, max: 6, palette:pinkgreen.reverse()},'3', 1); 
 
 
-/// Selected bands
-var bands_all = samples.first().propertyNames().removeAll(["system:index","label"])
+/// Selected bands 4
 var df_bands_all = samples.select(bands_all)
 var bands_selection = ["rh98", "Slope_SM3" ,"GLO30", "SAR1520_HV" , "SAR20_HV" , "SAR1520_HH" , "B12_p95" , "SAR20_HH"]
 var df_bands_all = samples.select(bands_selection)
             
-var rf = ee.Classifier.smileRandomForest({numberOfTrees: 100, minLeafPopulation:10}).setOutputMode('REGRESSION')
+var rf = ee.Classifier.smileRandomForest({numberOfTrees: 200, minLeafPopulation:10}).setOutputMode('REGRESSION')
 var rf = rf.train({features:df_bands_all, classProperty: "rh98", inputProperties: bands_selection})
 var explain = rf.explain().get('outOfBagErrorEstimate')
 var final_raster = layer.select(df_bands_all)
