@@ -1,75 +1,74 @@
-var geometry = ee.Geometry.MultiPoint([[-1.1493957239404233,38.258012395211765]]);
-
-//_____Input Points Variables__________
-var samples = ee.FeatureCollection("projects/ee-sulovaandrea/assets/Segura/GEDI_var21_10");
-Map.addLayer(samples, {min:0,max:2000}, 'GEDI',1);
-Map.centerObject(geometry,14); 
-print("Size of training samples:",samples.size())
-print(samples.first())
-
-//_____Input Parcels Variables__________
-var parcels = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/crop/crop_2021")
-var parcels_perm = parcels.filter(ee.Filter.eq('Training', "P"))
+var point =ee.Geometry.Point([-1.3, 37.7]);
+var parcels = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/crop/crop_2021");
+Map.centerObject(point,10)
 print("Size of training parcels:",parcels.size())
-Map.addLayer(parcels_perm, {}, 'Parcels',1);
+;
 
+var image_1 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210101_20210131_sum"),
+    image_2 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210201_20210228_sum"),
+    image_3 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210301_20210331_sum"),
+    image_4 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210401_20210430_sum"),
+    image_5 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210501_20210531_sum"),
+    image_6 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210601_20210630_sum"),
+    image_7= ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210701_20210731_sum"),
+    image_8 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210801_20210831_sum"),
+    image_9 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210901_20210930_sum"),
+    image_10 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20201001_20201031_sum"),
+    image_11 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20201101_20201130_sum"),
+    image_12 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20201201_20201231_sum");
 
-// Define a spatial filter as geometries that intersect.
-var spatialFilter = ee.Filter.intersects({
-  leftField: '.geo',
-  rightField: '.geo',
-  maxError: 10
-});
+var IR = ee.Image.cat([image_1,image_2,image_3,image_4,image_5,image_6,
+                       image_7,image_8,image_9,image_10,image_11,image_12]);
 
+var IR = IR.rename(['IRsum_21M01', 'IRsum_21M02', 'IRsum_21M03', 'IRsum_21M04', 'IRsum_21M05', 'IRsum_21M06',
+                    'IRsum_21M07', 'IRsum_21M08', 'IRsum_21M09', 'IRsum_20M10', 'IRsum_20M11', 'IRsum_M2012']) 
+                    
+var IR_mean = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.mean(), scale:20, tileScale:10})                          
 
-// Define a save all join.
-var saveAllJoin = ee.Join.saveAll({
-  matchesKey: 'gedi_point',
-});
+print(IR_mean.size(), IR_mean.limit(10))
 
-// Apply the join.
-var intersectJoined = saveAllJoin.apply(parcels_perm, samples, spatialFilter);
+var classlabels  = [
+  "Young Herbaceous irrigated in winter",21 ,
+  "Herbaceous irrigated in spring", 22,
+  "Herbaceous irrigated in summer",23 ,
+  "Herbaceous irrigated in autumn", 24,
+  "Herbaceous with double harvest (outside summer)", 31,
+  "Herbaceous with triple harvest (outside summer)", 32,
+  "Herbaceous with double harvest (including one in summer)" , 33,
+  "Herbaceous with triple harvest (including one in summer)", 34,
+  "Fruit", 1,
+  "Citrus", 2,
+  "Olivos_LAC", 3,
+  "Olivos_LBC", 4,
+  "Almonds", 5,
+  "Vineyard", 6,
+  "Vineyard (table grape)", 7,
+  "Greenhouse", 8,
+  "Young Fruit", 9,
+  "Young Citrus", 10,
+  "Low Density Tree Cover", 11,
+  "Family gardens",12]
 
-// Add power plant count per state as a property.
-var intersectJoined = intersectJoined.map(function(ft){
-                var total_point = ee.List(ft.get('gedi_point')).size();
-                var rh98_Mean = ee.FeatureCollection(ee.List(ft.get('gedi_point'))).aggregate_mean('rh98')
-                var rh98_Min = ee.FeatureCollection(ee.List(ft.get('gedi_point'))).aggregate_min('rh98')
-                var rh98_Max = ee.FeatureCollection(ee.List(ft.get('gedi_point'))).aggregate_max('rh98')
-                var rh98_sd = ee.FeatureCollection(ee.List(ft.get('gedi_point'))).aggregate_total_sd("rh98")
-                return ft.set("rh98_Mean",rh98_Mean,
-                              "rh98_Max",rh98_Max,
-                              "rh98_Min",rh98_Min,
-                              "rh98_sd",rh98_sd,
-                              "Total_points", total_point)});
-                              
-var props = intersectJoined.first().propertyNames().removeAll(['gedi_point'])
-var intersectJoined = intersectJoined.select(props)
-print(intersectJoined)
+var classlabels = ee.Dictionary(classlabels)
 
-Map.addLayer(intersectJoined, {}, 'intersectJoined',1);
+var parcels = parcels.filter(ee.Filter.inList('Seasons_T', classlabels.keys()))
+                // .filter(ee.Filter.notNull(['Q2_B2', 'Q3_B2']))
+                .map(function(f){return f.set('label', classlabels.get(f.get('Seasons_T')))})
+print('parcel size by class', parcels.aggregate_histogram('label'))
 
-print(intersectJoined.first())
-print(intersectJoined.size())
+var parcels = parcels.filter(ee.Filter.inList('Seasons_T', classlabels.keys()))
+                // .filter(ee.Filter.notNull(['Q2_B2', 'Q3_B2']))
+                .map(function(f){return f.set('label', classlabels.get(f.get('Seasons_T')))})
+print('Translate size by class', parcels.aggregate_histogram('Seasons_T'))
 
-// Make a bar chart for the number of power plants per state.
-var chart = ui.Chart.feature.byFeature(intersectJoined, 'Seasons_T', 'total_points')
-  .setChartType('ColumnChart')
-  .setSeriesNames({n_power_plants: 'GEDI points per parcel'})
-  .setOptions({
-    title: 'GEDI points per parcel',
-    hAxis: {title: 'Seasons_T'},
-    vAxis: {title: 'Total_points'}});
+//____MAPs_______
+var vis =  {min: 0,  max: 1, palette: ['FCFDBF', '2C105C']}
+var bandNames = IR.bandNames(); 
 
-// Print the chart to the console.
-print(chart);
+for(var i = 0; i < bandNames.size().getInfo(); i++){
+  var image = ee.Image(IR.select(bandNames.getString(i)));
+  var name = bandNames.getString(i).getInfo()
+  Map.addLayer(image, vis, name.toString(),  true)}
 
-
-// Export the FeatureCollection.
-Export.table.toDrive({
-  collection: intersectJoined,
-  description: 'perm_gedi_per_parcel',
-  fileFormat: 'CSV'
-});
-
-
+Map.addLayer(parcels, {}, 'Parcels',0)
+  
