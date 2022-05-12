@@ -1,5 +1,8 @@
+var point =ee.Geometry.Point([-1.3, 37.7]);
 var parcels = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/crop/crop_2021");
-Map.centerObject(geometry,8)
+Map.centerObject(point,8)
+print("Size of training parcels:",parcels.size())
+Map.addLayer(parcels, {}, 'Parcels',1);
 
 var image_1 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210101_20210131_sum"),
     image_2 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210201_20210228_sum"),
