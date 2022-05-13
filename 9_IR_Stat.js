@@ -1,24 +1,5 @@
 var point =ee.Geometry.Point([-1.3, 37.7]);
-var parcels = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/crop/crop_2021_geom_fix");
 Map.centerObject(point,10)
-Map.addLayer(parcels, {}, 'Parcels',0)
-print("parcels all data", parcels.size(), parcels.limit(10))
-
-
-var boundary =  ee.Geometry.Polygon(
-        [[[-1.8768157440040856, 37.94208318171865],
-          [-1.8768157440040856, 36.93453392417151],
-          [-0.6132246692249632, 36.93453392417151],
-          [-0.6132246692249632, 37.94208318171865]]], null, false);
-
-var parcels_fil = parcels.filterBounds(boundary)
-Map.addLayer(parcels_fil, {}, 'parcels_fil',0)
-print("parcels_fil", parcels_fil.size(), parcels_fil.limit(10))
-
-
-
-print("Size of training parcels:",parcels.size())
-var vis =  {min: 0,  max: 1, palette: ['FCFDBF', '2C105C']}
 
 var image_1 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210101_20210131_sum"),
     image_2 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210201_20210228_sum"),
@@ -32,6 +13,15 @@ var image_1 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210101_20210
     image_10 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20201001_20201031_sum"),
     image_11 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20201101_20201130_sum"),
     image_12 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20201201_20201231_sum");
+
+var parcels = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/crop/crop_2021_geom_fix");
+print("parcels all data", parcels.size())
+var im_geo = image_1.geometry();
+var parcels_img = parcels.filterBounds(im_geo)
+Map.addLayer(parcels_img, {}, 'parcels_img',0)
+print("parcels_img", parcels_img.size())
+
+
     
 var IR = ee.Image.cat([image_1,image_2,image_3,image_4,image_5,image_6,
                        image_7,image_8,image_9,image_10,image_11,image_12]);
@@ -62,16 +52,21 @@ var classlabels  = [
   "Family gardens",12]
 
 var classlabels = ee.Dictionary(classlabels)
-
 var parcels = parcels.filter(ee.Filter.inList('Seasons_T', classlabels.keys()))
                 // .filter(ee.Filter.notNull(['Q2_B2', 'Q3_B2']))
                 .map(function(f){return f.set('label', classlabels.get(f.get('Seasons_T')))})
 print('parcel size by class', parcels.aggregate_histogram('label'))
 
-var parcels = parcels.filter(ee.Filter.inList('Seasons_T', classlabels.keys()))
-                .map(function(f){return f.set('label', classlabels.get(f.get('Seasons_T')))})
-print('Translate size by class', parcels.aggregate_histogram('Seasons_T'))
 
+
+// Percentile
+var percentiles = IR.reduce(ee.Reducer.percentile([60,75,80,98]), 1)
+Map.addLayer(percentiles, {min:0, max:2500, bands:['B4_p50', 'B3_p50', 'B2_p50'], gamma:1.2}, 's2 rgb median', false)
+Map.addLayer(percentiles, {min:0, max:1, bands:['ndvi_p50'], palette:rdGn}, 's2 ndvi median', false)
+
+var amp2590 = percentiles.select(b+'_p90').subtract(percentiles.select(b+'_p20')).rename('amp2090')
+var amp2595 = percentiles.select(b+'_p95').subtract(percentiles.select(b+'_p20')).rename('amp2095')
+var amp5095 = percentiles.select(b+'_p95').subtract(percentiles.select(b+'_p50')).rename('amp5095')
 
 
 //____MAPs_______
