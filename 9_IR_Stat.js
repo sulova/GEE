@@ -39,40 +39,28 @@ Map.addLayer(parcels, {}, 'parcels IR',0)
 print("parcels within IR raster", parcels.size())
 
 
-//___Percentile + Medain + Mean____
-var IR_mean = IR.rename(['IR21M01_mean','IR21M02_mean','IR21M03_mean','IR21M04_mean','IR21M05_mean','IR21M06_mean',
-                         'IR21M07_mean','IR21M08_mean','IR21M09_mean','IR20M10_mean','IR20M11_mean','IR20M12_mean'])
+//__Parcel Statistics Percentile + Medain + Mean____
+var IR_mean = IR.rename(['IR21M01_mean','IR21M02_mean','IR21M03_mean','IR21M04_mean','IR21M05_mean','IR21M06_mean','IR21M07_mean','IR21M08_mean','IR21M09_mean','IR20M10_mean','IR20M11_mean','IR20M12_mean'])
 var IR_mean = IR_mean.reduceRegions({collection:parcels, reducer:ee.Reducer.mean(), scale:20, tileScale:10})
 
-var IR_med = IR.rename(['IR21M01_med','IR21M02_med','IR21M03_med','IR21M04_med','IR21M05_mean','IR21M06_mean',
-                    'IR21M07_mean','IR21M08_mean','IR21M09_mean','IR20M10_mean','IR20M11_mean','IR20M12_mean'])
+var IR_med = IR.rename(['IR21M01_med','IR21M02_med','IR21M03_med','IR21M04_med','IR21M05_med','IR21M06_med','IR21M07_med','IR21M08_med','IR21M09_med','IR20M10_med','IR20M11_med','IR20M12_med'])
 var IR_med = IR_med.reduceRegions({collection:parcels, reducer:ee.Reducer.median(), scale:20, tileScale:10})
 
+var IR_p = IR.rename(['IR21M01','IR21M02','IR21M03','IR21M04','IR21M05','IR21M06','IR21M07','IR21M08','IR21M09','IR20M10','IR20M11','IR20M12'])
+var IR_p = IR_p.reduceRegions({collection:parcels, reducer:ee.Reducer.percentile([75,85,95]), scale:20, tileScale:10})
 
-var IR = IR.rename(['IR21M015','IR21M02_p75','IR21M03_p75','IR21M04_p75','IR21M05_p75','IR21M06_p75',
-                    'IR21M07_p75','IR21M08_p75','IR21M09_p75','IR20M10_p75','IR20M11_p75','IR20M12_p75'])
-var IR_p75 = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.percentile([75,90]), scale:20, tileScale:10})
+//merge
+var IR_stat = IR_mean.merge(IR_med).merge(IR_p)
 
-var IR = IR.rename(['IR21M01_p85','IR21M02_p85','IR21M03_p85','IR21M04_p75','IR21M05_p75','IR21M06_p75',
-                    'IR21M07_p75','IRsum_21M08','IR21M09_p75','IR20M10_p75','IR20M11_p75','IR20M12_p75'])
-//var IR_p85 = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.percentile([80]), scale:20, tileScale:10})
-// var IR_per_95 = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.percentile([95]), scale:20, tileScale:10})
-//var percentiles = IR.reduce(ee.Reducer.percentile([60,75,80,98]), 1)
+
 //Map.addLayer(IR_median, {min:0, max:20, bands:['C21_M08'], palette:rdGn}, 'C21_M08 median', false)
-print("IR_p75", IR_p75.first(),IR_p75.size())
-
-
-Map.addLayer(IR_p75, {min:0, max:20, bands:['IRsum_21M06'], palette:rdGn}, 'C21_M08 per75', true)
-
+print("IR_stat", IR_stat.first(),IR_stat.size())
+Map.addLayer(IR_stat, {}, 'IR_stat', true)
 
 
 // Epxorted statistics
-var IR_mean = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.mean(), scale:20, tileScale:10})  
- 
- 
-// Export the image, specifying scale and region.
-// Export.table.toAsset(IR_mean, 'IR_20m_mean_pacel', 'projects/geo4gras/assets/rio-segura/ET/IR_20m_mean_pacel')
-// Export.table.toDrive({collection:IR_mean, description: 'IR_20m_mean_pacel', fileFormat:"GeoJSON"})
+Export.table.toAsset(IR_stat, 'IR_stat', 'projects/geo4gras/assets/rio-segura/ET/IR_stat_parcel')
+Export.table.toDrive({collection:IR_stat, description: 'IR_stat_parcel', fileFormat:"GeoJSON"})
 
 
 
