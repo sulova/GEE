@@ -1,5 +1,9 @@
 var point =ee.Geometry.Point([-1.3, 37.7]);
-Map.centerObject(point,10)
+Map.centerObject(point,15)
+
+Map.setOptions('hybrid')
+var rdGn = ['#a50026','#d73027','#f46d43','#fdae61','#fee08b','#ffffbf','#d9ef8b','#a6d96a','#66bd63','#1a9850','#006837']
+var vis =  {min: 0,  max: 1, palette: ['FCFDBF', '2C105C']}
 
 var image_1 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210101_20210131_sum"),
     image_2 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210201_20210228_sum"),
@@ -14,21 +18,66 @@ var image_1 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20210101_20210
     image_11 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20201101_20201130_sum"),
     image_12 = ee.Image("projects/geo4gras/assets/rio-segura/ET/IR_20201201_20201231_sum");
 
+var IR = ee.Image.cat([image_1,image_2,image_3,image_4,image_5,image_6,image_7,image_8,image_9,image_10,image_11,image_12]);
+var IR = IR.rename(['IR21M01','IR21M02','IR21M03','IR21M04','IR21M05','IR21M06',
+                    'IR21M07','IR21M08','IR21M09','IR20M10','IR20M11','IR20M12'])
+print("IR",IR)
+
+//____MAPs_______
+var bandNames = IR.bandNames(); 
+for(var i = 0; i < bandNames.size().getInfo(); i++){
+  var image = ee.Image(IR.select(bandNames.getString(i)));
+  var name = bandNames.getString(i).getInfo()
+  Map.addLayer(image, vis, name.toString(),  0)}    
+
+
+//___Parcel_______  
 var parcels = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/crop/crop_2021_geom_fix");
-print("parcels all data", parcels.size())
 var im_geo = image_1.geometry();
-var parcels_img = parcels.filterBounds(im_geo)
-Map.addLayer(parcels_img, {}, 'parcels_img',0)
-print("parcels_img", parcels_img.size())
+var parcels = parcels.filterBounds(im_geo)
+Map.addLayer(parcels, {}, 'parcels IR',0)
+print("parcels within IR raster", parcels.size())
 
 
-    
-var IR = ee.Image.cat([image_1,image_2,image_3,image_4,image_5,image_6,
-                       image_7,image_8,image_9,image_10,image_11,image_12]);
+//___Percentile + Medain + Mean____
+var IR_mean = IR.rename(['IR21M01_mean','IR21M02_mean','IR21M03_mean','IR21M04_mean','IR21M05_mean','IR21M06_mean',
+                         'IR21M07_mean','IR21M08_mean','IR21M09_mean','IR20M10_mean','IR20M11_mean','IR20M12_mean'])
+var IR_mean = IR_mean.reduceRegions({collection:parcels, reducer:ee.Reducer.mean(), scale:20, tileScale:10})
 
-var IR = IR.rename(['C21_M01', 'CM21_M02', 'CM21_M03', 'CM21_M04', 'CM21_M05', 'CM21_M06',
-                    'CM21_M07', 'CM21_M08', 'CM21_M09', 'CM20_M10', 'CM20_M11', 'CM20_M12']) 
-                    
+var IR_med = IR.rename(['IR21M01_med','IR21M02_med','IR21M03_med','IR21M04_med','IR21M05_mean','IR21M06_mean',
+                    'IR21M07_mean','IR21M08_mean','IR21M09_mean','IR20M10_mean','IR20M11_mean','IR20M12_mean'])
+var IR_med = IR_med.reduceRegions({collection:parcels, reducer:ee.Reducer.median(), scale:20, tileScale:10})
+
+
+var IR = IR.rename(['IR21M015','IR21M02_p75','IR21M03_p75','IR21M04_p75','IR21M05_p75','IR21M06_p75',
+                    'IR21M07_p75','IR21M08_p75','IR21M09_p75','IR20M10_p75','IR20M11_p75','IR20M12_p75'])
+var IR_p75 = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.percentile([75,90]), scale:20, tileScale:10})
+
+var IR = IR.rename(['IR21M01_p85','IR21M02_p85','IR21M03_p85','IR21M04_p75','IR21M05_p75','IR21M06_p75',
+                    'IR21M07_p75','IRsum_21M08','IR21M09_p75','IR20M10_p75','IR20M11_p75','IR20M12_p75'])
+//var IR_p85 = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.percentile([80]), scale:20, tileScale:10})
+// var IR_per_95 = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.percentile([95]), scale:20, tileScale:10})
+//var percentiles = IR.reduce(ee.Reducer.percentile([60,75,80,98]), 1)
+//Map.addLayer(IR_median, {min:0, max:20, bands:['C21_M08'], palette:rdGn}, 'C21_M08 median', false)
+print("IR_p75", IR_p75.first(),IR_p75.size())
+
+
+Map.addLayer(IR_p75, {min:0, max:20, bands:['IRsum_21M06'], palette:rdGn}, 'C21_M08 per75', true)
+
+
+
+// Epxorted statistics
+var IR_mean = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.mean(), scale:20, tileScale:10})  
+ 
+ 
+// Export the image, specifying scale and region.
+// Export.table.toAsset(IR_mean, 'IR_20m_mean_pacel', 'projects/geo4gras/assets/rio-segura/ET/IR_20m_mean_pacel')
+// Export.table.toDrive({collection:IR_mean, description: 'IR_20m_mean_pacel', fileFormat:"GeoJSON"})
+
+
+
+
+/*                    
 var classlabels  = [
   "Young Herbaceous irrigated in winter",21 ,
   "Herbaceous irrigated in spring", 22,
@@ -57,44 +106,5 @@ var parcels = parcels.filter(ee.Filter.inList('Seasons_T', classlabels.keys()))
                 .map(function(f){return f.set('label', classlabels.get(f.get('Seasons_T')))})
 print('parcel size by class', parcels.aggregate_histogram('label'))
 
+*/
 
-
-// Percentile
-var percentiles = IR.reduce(ee.Reducer.percentile([60,75,80,98]), 1)
-Map.addLayer(percentiles, {min:0, max:2500, bands:['B4_p50', 'B3_p50', 'B2_p50'], gamma:1.2}, 's2 rgb median', false)
-Map.addLayer(percentiles, {min:0, max:1, bands:['ndvi_p50'], palette:rdGn}, 's2 ndvi median', false)
-
-var amp2590 = percentiles.select(b+'_p90').subtract(percentiles.select(b+'_p20')).rename('amp2090')
-var amp2595 = percentiles.select(b+'_p95').subtract(percentiles.select(b+'_p20')).rename('amp2095')
-var amp5095 = percentiles.select(b+'_p95').subtract(percentiles.select(b+'_p50')).rename('amp5095')
-
-
-//____MAPs_______
-
-var vis =  {min: 0,  max: 1, palette: ['FCFDBF', '2C105C']}
-var bandNames = IR.bandNames(); 
-
-for(var i = 0; i < bandNames.size().getInfo(); i++){
-  var image = ee.Image(IR.select(bandNames.getString(i)));
-  var name = bandNames.getString(i).getInfo()
-  Map.addLayer(image, vis, name.toString(),  0)}
-Map.addLayer(parcels, {}, 'Parcels',0)
-
-
-// Epxorted statistics
- 
- var IR_mean = IR.reduceRegions({collection:parcels, reducer:ee.Reducer.mean(), scale:20, tileScale:10})  
- 
- 
-// Export the image, specifying scale and region.
-// Export.table.toAsset(IR_mean, 'IR_20m_mean_pacel', 'projects/geo4gras/assets/rio-segura/ET/IR_20m_mean_pacel')
-// Export.table.toDrive({collection:IR_mean, description: 'IR_20m_mean_pacel', fileFormat:"GeoJSON"})
-
-///__________Statistics per parcels_______________
-var IR_parcel = ee.FeatureCollection("projects/geo4gras/assets/rio-segura/ET/IR_20m_mean_pacel");
-print("all data", IR_parcel.size(), IR_parcel.limit(10))
-
-var IR_parcel =IR_parcel.filter(ee.Filter.notNull(['IRsum_20M10']))
-print("Filter data", IR_parcel.size(), IR_parcel.limit(10))
-
-Map.addLayer(IR_parcel, {}, 'Parcels',1)
