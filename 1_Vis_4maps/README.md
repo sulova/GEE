@@ -125,4 +125,4 @@ ui.root.widgets().reset([mapGrid]);
 maps[0].centerObject(Australia,3.5);
 ```
 
-![Image](https://github.com/sulova/GEE/main/1_Vis_4maps/4maps.PNG)
+![Image](https://github.com/sulova/GEE/blob/main/1_Vis_4maps/4maps.PNG)
