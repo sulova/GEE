@@ -12,8 +12,7 @@ You can even [link to CODE!](https://github.com/sulova/NO2_COVID/blob/main/NO2_D
 
 *Denmark, March 2019 vs March 2020.*
 
-
-![Image](https://github.com/sulova/GEE/4_NO2_COVID/NO2.jpg)
+![Image](https://github.com/sulova/GEE/blob/main/4_NO2_COVID/NO2.jpg)
 
 ```javascript
 var area = ee.FeatureCollection("USDOS/LSIB/2013").filterMetadata("cc","equals","DA");
