@@ -94,14 +94,14 @@ Map.addLayer(linearFit, {'bands': ['scale'], min: -0.5, max: 0.5, 'palette': red
 
 // Mask  
 var change_mask = linearFit.select('scale').lt(-0.1)
-var final = linearFit.updateMask(change_mask).multiply(1000).round()
-Map.addLayer(final, {'bands': ['scale'], min: -1000, max: 0, 'palette':['red','yellow' ]},'Final ', 1)
+var final = linearFit.updateMask(change_mask).multiply(1000).round().select('scale')
+Map.addLayer(final, {min: -1000, max: 0, 'palette':['red','yellow' ]},'Final ', 0)
 
 
 // Dilate + Erode +  Minimum Mapping Unit (MMU)
 var final_edit = erode(final, 5)
-var final_edit = dilate(final_edit,5)
-var final_edit = MMU(final_edit, 8).rename('scale')
+var final_edit = dilate(final_edit,5).rename('scale')
+// var final_edit = MMU(final_edit, 8).
 Map.addLayer(final_edit, {'bands': ['scale'], min: -1000, max: 0, 'palette':['red','yellow' ]},'final_edit ', 1)
 
 /*
