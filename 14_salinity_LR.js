@@ -125,8 +125,8 @@ var final = final.updateMask(ee.Image.constant(1).subtract(urbanMask))
 
 
 // Dilate + Erode +  Minimum Mapping Unit (MMU)
-var final = dilate(final,10)
-var final = erode(final,8)
+var final = dilate(final,8)
+var final = erode(final,4)
 var final = MMU(final, 30).rename('scale')
 
 Map.addLayer(final, {'bands': ['scale'],palette:['red']},'Increasing Risk of Soil Salinity', 0)
