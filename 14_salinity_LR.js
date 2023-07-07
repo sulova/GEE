@@ -1,4 +1,6 @@
 /* Define the study area
+creator: Andrea Sulova
+project: EO clinic
 
 Salinity mapping: We need Enhanced Vegetation Index products from the pre monsoon period 
 between February and May when soil salinity levels are expected to peak. As an add on to this product, 
@@ -10,8 +12,7 @@ The task is described in section 2.2.3 and the aoi for both tasks is attached (a
 */
 
 var geometry = ee.FeatureCollection("users/duroskap/AOI_irrigation"); 
-var point = ee.Geometry.Point( 91.9164492853894, 21.666631267023075); 
-Map.centerObject(geometry, 14)
+Map.centerObject(geometry, 15)
 
 // Define the start and end years for the iteration
 var startYear = 2017;
@@ -39,6 +40,11 @@ var calculateEVI = function(image) {
   return image.addBands(evi);
 };
 
+var calculateNDWI = function(image) {
+  var ndvi = image.normalizedDifference(['B3', 'B8']).multiply(100).rename('ndwi').round();
+  return image.addBands(ndvi);
+};
+
 function MMU (img, n){
   var patches = img.gte(0).connectedPixelCount(256, true)
   return img.updateMask(patches.gte(n))}
@@ -58,7 +64,7 @@ function dilate(img, distance) {
 
 
 // Empty image collection created to store seasonal composites.
-var regression_collection = ee.ImageCollection([]);
+var collection = ee.ImageCollection([]);
 
 // Seasonal Median composite from 2017 to 2022--> 6 images in collection 
 for (var year = startYear; year <= endYear; year++){
@@ -73,64 +79,65 @@ for (var year = startYear; year <= endYear; year++){
                   .select(['B2','B3','B4', 'B8','QA60'])
                   .filterMetadata('CLOUDY_PIXEL_PERCENTAGE','less_than', 10)
                   .filterDate(s,e)
-                  
+                
   // Cloud mask + EVI calculation + adding Time
   var image_median = images_season.map(maskcloud)
                                   .map(calculateEVI)
-                                  .select('EVI')
+                                  .map(calculateNDWI)
                                   .median()
-                                  .addBands(year).int16().clip(geometry)
-  var image_median = image_median.set('year', year)
+                                  .clip(geometry)
+  
+  // Visualize RGB image                                
+  // Map.addLayer(image_median, {'bands': ['B4','B3','B2'], min: 0, max:3000}, 'S2_RGB_' + year, 0)                               
+  
+  // add year as property for LR                             
+  var evi_median = image_median.addBands(year).int16().set('year', year)
                                   
   // Merge each median composite to the collection                                
-  var regression_collection = regression_collection.merge(image_median)}
+  var collection = collection.merge(evi_median)}
 
-// Check Collection
-print('S2 collection:', regression_collection )
+
+
+// Check Collection Size
+print('S2 collection:', collection )
 
 // Linear Fit
-var linearFit = regression_collection.select(['EVI', 'constant']).reduce(ee.Reducer.linearFit())
+var linearFit = collection.select(['EVI', 'constant']).reduce(ee.Reducer.linearFit())
 Map.addLayer(linearFit, {'bands': ['scale'], min: -0.5, max: 0.5, 'palette': red_blue}, 'Scale', 0)
 
-// Mask  
-var change_mask = linearFit.select('scale').lt(-0.1)
-var final = linearFit.updateMask(change_mask).multiply(1000).round().select('scale')
-Map.addLayer(final, {min: -1000, max: 0, 'palette':['red','yellow' ]},'Final ', 0)
+// Salinity Mask - scale should decrease meaning EVI is decreasing
+var salinity_mask = linearFit.select('scale').lte(-0.05)
+var salinity_mask = linearFit.updateMask(salinity_mask).multiply(1000).round().select('scale')
+Map.addLayer(salinity_mask, {min: -1000, max: 0, 'palette':['red','yellow' ]},'Salinity Mask ', 0)
+
+// Water mask
+var water_mask = collection.mean().select('ndwi').gt(10)
+Map.addLayer(water_mask.selfMask(), {bands: ['ndwi'], palette:['blue']},'Permanent Water', 0)
+
+// Urban Mask
+var landCover = ee.ImageCollection('ESA/WorldCover/v200').first().clip(geometry).updateMask(50);
+var urbanMask = landCover.eq(50);
+Map.addLayer(urbanMask, {}, 'Landcover',0);
+
+// Masked the salinty mask with the permanent water mask
+var final = salinity_mask.updateMask(ee.Image.constant(1).subtract(water_mask))
+var final = final.updateMask(ee.Image.constant(1).subtract(urbanMask))
 
 
 // Dilate + Erode +  Minimum Mapping Unit (MMU)
-var final_edit = erode(final, 5)
-var final_edit = dilate(final_edit,5).rename('scale')
-// var final_edit = MMU(final_edit, 8).
-Map.addLayer(final_edit, {'bands': ['scale'], min: -1000, max: 0, 'palette':['red','yellow' ]},'final_edit ', 1)
+var final = dilate(final,10)
+var final = erode(final,8)
+var final = MMU(final, 30).rename('scale')
 
-/*
-
-// Check EVI timeseries for a point
-
-var valueArray = ee.List([]);
-var timeArray = ee.List([]);
-var imageList = regression_collection.toList(regression_collection.size())
-
-for (var i = 0; i < imageList.length().getInfo(); i++) {
-  var image = ee.Image(imageList.get(i));
-  var valueDict = image.reduceRegion({
-    reducer: ee.Reducer.first(),
-    geometry: point,
-    scale: 30})
-  var valueArray = valueArray.add(valueDict.get('EVI'))
-  var timeArray = timeArray.add(valueDict.get('constant'))}
-print(valueArray, timeArray)
-
-*/
+Map.addLayer(final, {'bands': ['scale'],palette:['red']},'Increasing Risk of Soil Salinity', 0)
 
 
 // Export the final layer
 Export.image.toDrive({
-    image: final.int8(),
+    image: final.selfMask().int8(),
     description: 'EVI_salinity_' + startYear.toString() + '_' + endYear.toString(),
     region: geometry, 
-    folder:'EO_EVI',
+    folder:'EO_salinity',
     scale: 10,
     maxPixels: 10e12,
     shardSize: 256,  //shardSize: 1024,
@@ -139,4 +146,21 @@ Export.image.toDrive({
     crs: 'EPSG:4326'})
 
 
+// Classify the raster into low () and high categories
+var scale_layer = linearFit.select('scale').mask(final).multiply(-1000).round()
+var classifiedLayer = scale_layer.where(scale_layer.gt(300),2).where(scale_layer.lte(300), 1);
+Map.addLayer(classifiedLayer, {min: 0, max: 2, palette: ['blue', 'yellow', 'red']}, 'Categorical Layer');
+
+// Export the final layer
+Export.image.toDrive({
+    image: classifiedLayer.selfMask().int8(),
+    description: 'EVI_salinity_classified_' + startYear.toString() + '_' + endYear.toString(),
+    region: geometry, 
+    folder:'EO_salinity',
+    scale: 10,
+    maxPixels: 10e12,
+    shardSize: 256,  //shardSize: 1024,
+    fileDimensions: 256*2*10*10,
+    formatOptions: {cloudOptimized:true},
+    crs: 'EPSG:4326'})
 
